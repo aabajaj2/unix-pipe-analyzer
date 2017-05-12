@@ -32,7 +32,6 @@ int main(int argc, char **argv)
             aargv[row][column] = argv[c];
             c++;
             column++;
-
             if(c == argc){
                 break;
             }      
@@ -91,7 +90,7 @@ int main(int argc, char **argv)
         }
         close(fds1[1]);
         close(fds[0]);
-            FILE *fp;
+        FILE *fp;
         char *as;
         fp = fopen("pa.log", "w");
         if(ascii == 1){
@@ -99,10 +98,8 @@ int main(int argc, char **argv)
         }else{
             as = "BINARY";
         }
-
         fprintf(fp, "[1]%s -> %s\n %d bytes\n %d lines\n %s data\n", aargv[0][0], aargv[1][0], bytes, lines, as);
         fclose(fp);
-
         printf("Lines = %d Bytes = %d ASCII = %d\n", lines, bytes, ascii);     
         exit(0);
     }
