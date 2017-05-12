@@ -5,17 +5,25 @@
 #include <unistd.h>
 #include <string.h>
 
+struct metrics{
+    int lines;
+    int bytes;
+    int type;
+    char *progname;
+};
+
 int main(int argc, char **argv)
 {
     pid_t id;
-    int fds[2], fds1[2], fds2[2];
+    int fds[2], fds1[2];
     int c = 0, j;
     char buf[32];
+    char intr[1000] = "";
     int count = 0;
+    struct metrics m;
 
     pipe(fds);
     pipe(fds1);
-    pipe(fds2); 
 
     /*parsing the arguments*/
 
@@ -51,11 +59,8 @@ int main(int argc, char **argv)
         /* Close read end of pipe */
         close(fds[0]);
 
-        /* Close stdout */
-        close(1);
-
-        /* Dup write end of pipe */
-        dup(fds[1]);
+        /* Dup write end of pipe it also closes the stdout */
+        dup2(fds[1], 1);
 
         /* Close extra write end of pipe */
         close(fds[1]);
@@ -64,8 +69,33 @@ int main(int argc, char **argv)
             write(2, "execvp() failed for prog1\n", 27);
             exit(-1);
         }
-
         /* We will never reach this point */
+    }
+
+    /* Fork middle process */
+
+    id = fork();
+
+    if (id < 0) {
+        printf("fork() for middle process failed\n");
+        exit(-1);
+    }
+
+    if (id == 0) {
+        /* Close write end of pipe */
+        close(fds[1]);
+        close(fds1[0]);
+        while ( (count = read(fds[0], buf, 1)) > 0 ) {
+            write(fds1[1], buf, 1);
+            strcat(intr, buf);
+            if(strcmp(buf, "\n")){
+                m.lines++;
+            }
+        }
+        close(fds1[1]);
+        close(fds[0]);
+        printf("Intermediate = %s\n", intr);     
+        exit(0);
     }
 
     /* Fork second process */
@@ -79,16 +109,15 @@ int main(int argc, char **argv)
 
     if (id == 0) {
         /* Close write end of pipe */
-        close(fds[1]);
+        close(fds1[1]);
 
-        /* Close stdin */
-        close(0);
-
-        /* Dup read end of pipe */
-        dup(fds[0]);
+        /* Dup read end of pipe, dup2 closed the stdin too*/
+        dup2(fds1[0], 0);
 
         /* Close extra read end of pipe */
+        close(fds1[0]);
         close(fds[0]);
+        close(fds[1]);
 
         if (execvp(aargv[1][0], aargv[1]) < 0) {
             write(2, "execvp() failed for prog2\n", 27);
@@ -99,7 +128,10 @@ int main(int argc, char **argv)
     /* Need to close both ends of pipe in parent */
     close(fds[0]);
     close(fds[1]);
+    close(fds1[0]);
+    close(fds1[1]);
     
+    id = wait(NULL);
     id = wait(NULL);
     id = wait(NULL);
     
