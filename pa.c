@@ -41,39 +41,33 @@ int main(int argc, char **argv)
     }
     
     /* Fork first process */
+    
     id = fork();
 
     if (id < 0) {
         printf("fork() for first process failed\n");
         exit(-1);
     }
-
     if (id == 0) {
         /* Close read end of pipe */
         close(fds[0]);
-
         /* Dup write end of pipe it also closes the stdout */
         dup2(fds[1], 1);
-
         /* Close extra write end of pipe */
         close(fds[1]);
-
         if (execvp(aargv[0][0], aargv[0]) < 0) {
             write(2, "execvp() failed for prog1\n", 27);
             exit(-1);
         }
-        /* We will never reach this point */
     }
 
     /* Fork middle process */
 
     id = fork();
-
     if (id < 0) {
         printf("fork() for middle process failed\n");
         exit(-1);
     }
-
     if (id == 0) {
         /* Close write end of pipe */
         close(fds[1]);
@@ -107,24 +101,19 @@ int main(int argc, char **argv)
     /* Fork second process */
 
     id = fork();
-
     if (id < 0) {
         printf("fork() for second process failed\n");
         exit(-1);
     }
-
     if (id == 0) {
         /* Close write end of pipe */
         close(fds1[1]);
-
         /* Dup read end of pipe, dup2 closed the stdin too*/
         dup2(fds1[0], 0);
-
-        /* Close extra read end of pipe */
+        /* Close extra read end of pipes */
         close(fds1[0]);
         close(fds[0]);
         close(fds[1]);
-
         if (execvp(aargv[1][0], aargv[1]) < 0) {
             write(2, "execvp() failed for prog2\n", 27);
             exit(-1);
@@ -136,10 +125,8 @@ int main(int argc, char **argv)
     close(fds[1]);
     close(fds1[0]);
     close(fds1[1]);
-
     id = wait(NULL);
     id = wait(NULL);
     id = wait(NULL);
-
     return 0;
 }
