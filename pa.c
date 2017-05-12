@@ -5,13 +5,6 @@
 #include <unistd.h>
 #include <string.h>
 
-struct metrics{
-    int lines;
-    int bytes;
-    int type;
-    char *progname;
-};
-
 int main(int argc, char **argv)
 {
     pid_t id;
@@ -20,7 +13,10 @@ int main(int argc, char **argv)
     char buf[32];
     char intr[1000] = "";
     int count = 0;
-    struct metrics m;
+    int lines = 0;
+    int bytes = 0;
+    int ascii = 0;
+    char *progname = "";
 
     pipe(fds);
     pipe(fds1);
@@ -45,7 +41,7 @@ int main(int argc, char **argv)
         aargv[row][column] = '\0';
         row++;
     }
-    printf("%s %s %s %s\n", aargv[0][0], aargv[0][1], aargv[1][0], aargv[1][1]);
+    // printf("%s %s %s %s\n", aargv[0][0], aargv[0][1], aargv[1][0], aargv[1][1]);
     
     /* Fork first process */
     id = fork();
@@ -87,14 +83,30 @@ int main(int argc, char **argv)
         close(fds1[0]);
         while ( (count = read(fds[0], buf, 1)) > 0 ) {
             write(fds1[1], buf, 1);
-            strcat(intr, buf);
-            if(strcmp(buf, "\n")){
-                m.lines++;
+            // strcat(intr, buf);
+            bytes++;
+            if(strcmp(buf, "\n") == 0){
+                lines++;
+            }
+            if(count < 127){
+                ascii = 1;
             }
         }
         close(fds1[1]);
         close(fds[0]);
-        printf("Intermediate = %s\n", intr);     
+            FILE *fp;
+        char *as;
+        fp = fopen("pa.log", "w");
+        if(ascii == 1){
+            as = "ASCII";
+        }else{
+            as = "BINARY";
+        }
+
+        fprintf(fp, "[1]%s->[2]%s\n %d lines\n %d bytes\n %s data\n", aargv[0][0], aargv[1][0], lines, bytes, as);
+        fclose(fp);
+
+        printf("Lines = %d Bytes = %d ASCII = %d\n", lines, bytes, ascii);     
         exit(0);
     }
 
@@ -130,10 +142,10 @@ int main(int argc, char **argv)
     close(fds[1]);
     close(fds1[0]);
     close(fds1[1]);
-    
+
     id = wait(NULL);
     id = wait(NULL);
     id = wait(NULL);
-    
+
     return 0;
 }
