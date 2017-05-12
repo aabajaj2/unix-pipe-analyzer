@@ -11,7 +11,6 @@ int main(int argc, char **argv)
     int fds[2], fds1[2];
     int c = 0, j;
     char buf[32];
-    char intr[1000] = "";
     int count = 0;
     int lines = 0;
     int bytes = 0;
@@ -41,7 +40,6 @@ int main(int argc, char **argv)
         aargv[row][column] = '\0';
         row++;
     }
-    // printf("%s %s %s %s\n", aargv[0][0], aargv[0][1], aargv[1][0], aargv[1][1]);
     
     /* Fork first process */
     id = fork();
@@ -83,7 +81,6 @@ int main(int argc, char **argv)
         close(fds1[0]);
         while ( (count = read(fds[0], buf, 1)) > 0 ) {
             write(fds1[1], buf, 1);
-            // strcat(intr, buf);
             bytes++;
             if(strcmp(buf, "\n") == 0){
                 lines++;
@@ -103,7 +100,7 @@ int main(int argc, char **argv)
             as = "BINARY";
         }
 
-        fprintf(fp, "[1]%s->[2]%s\n %d lines\n %d bytes\n %s data\n", aargv[0][0], aargv[1][0], lines, bytes, as);
+        fprintf(fp, "[1]%s -> %s\n %d bytes\n %d lines\n %s data\n", aargv[0][0], aargv[1][0], bytes, lines, as);
         fclose(fp);
 
         printf("Lines = %d Bytes = %d ASCII = %d\n", lines, bytes, ascii);     
